@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 import random
 import pyperclip
+import json
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 def generate_password():
@@ -29,6 +30,11 @@ def save():
     website = website_e.get()
     email = email_e.get()
     password = passw_e.get()
+    new_data = {website:{
+        "email": email,
+        "password": password,
+        }
+    }
 
     if len(website) == 0 or len(password) == 0:
         messagebox.showinfo(message="Please don't leave any fields empty", title="Warning!")
@@ -36,10 +42,33 @@ def save():
         is_ok = messagebox.askokcancel(title=website, message=f"These are the details entered: \n Email: {email} \n Password: {password} \n Is it okay to save?")
 
         if is_ok:
-            with open("data.text", "a") as data_file:
-                data_file.write(f"{website} | {email} | {password}\n")
-                website_e.delete(0, END)
-                passw_e.delete(0, END)
+            try:
+                with open("data.json", "r") as data_file:
+                    data = json.load(data_file)
+                    data.update(new_data)
+            except FileNotFoundError:
+                data = new_data
+            finally:
+                with open("data.json", "w") as data_file:
+                    json.dump(data, data_file, indent= 4)
+
+                    website_e.delete(0, END)
+                    passw_e.delete(0, END)
+
+def search():
+    website_s = website_e.get()
+    try:
+        with open("data.json", "r") as data_file:
+            data = json.load(data_file)
+    except FileNotFoundError:
+        messagebox.showinfo(message="No data file found!", title="Warning!")
+    else:
+        try:
+            email_s = data[website_s]["email"]
+            passw_s = data[website_s]["password"]
+            messagebox.showinfo(message=f"Email: {email_s} \nPassword: {passw_s}", title="Result")
+        except KeyError:
+            messagebox.showinfo(message=f"No details for {website_s} exists!", title="Warning!")
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -61,9 +90,9 @@ email_l.grid(column=0, row=2, sticky="w")
 passw_l = Label(text="Password:")
 passw_l.grid(column=0, row=3, sticky="w")
 
-website_e = Entry(width=35)
+website_e = Entry(width=21)
 website_e.focus()
-website_e.grid(column=1, row=1, columnspan=2, sticky="ew", padx=5, pady=5)
+website_e.grid(column=1, row=1, columnspan=1, sticky="ew", padx=5, pady=5)
 
 email_e = Entry(width=35)
 email_e.insert(0, "your.email@email.com")
@@ -74,6 +103,9 @@ passw_e.grid(column=1, row=3, sticky="ew", padx=5, pady=5)
 
 gen_passw_b = Button(text="Generate Password", width=14, border=1, command=generate_password)
 gen_passw_b.grid(column=2, row=3, sticky="w")
+
+search_b = Button(text="Search", width=14, border=1, command=search)
+search_b.grid(column=2, row=1, sticky="w")
 
 add_b = Button(text="Add", width=34, border=1, command=save)
 add_b.grid(column=1, row=4, columnspan=2, sticky="we")
